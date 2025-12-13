@@ -1,4 +1,5 @@
 <?php
+session_start();
 include 'content/datenbankverbindung.php';
 
 // Initialize variables for remembering selections
