@@ -36,32 +36,57 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 <head>
     <meta charset="UTF-8">
     <title>Login</title>
-    <link href="style/style.css" rel="stylesheet">
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
 </head>
-<body>
+<body class="bg-light">
 
 <?php include 'content/navbar.php'; ?>
 
-<div class="container mt-5" style="max-width: 400px;">
+<div class="container d-flex justify-content-center align-items-center vh-100">
 
-    <h2 class="mb-3">Login</h2>
+    <div class="card shadow-sm" style="width: 420px;">
+        <div class="card-body p-4">
 
-    <?php if ($error): ?>
-        <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>
-    <?php endif; ?>
+            <h3 class="text-center mb-4">
+                <i class="bi bi-person-circle"></i> Login
+            </h3>
 
-    <form method="post" action="login.php">
-        <div class="mb-3">
-            <input type="text" name="username" class="form-control" placeholder="Benutzername" required>
+            <?php if ($error): ?>
+                <div class="alert alert-danger alert-dismissible fade show">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <?= htmlspecialchars($error) ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            <?php endif; ?>
+
+            <form method="post" action="login.php">
+
+                <div class="mb-3">
+                    <label class="form-label">Benutzername</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-person"></i></span>
+                        <input type="text" name="username" class="form-control" required>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label">Passwort</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                        <input type="password" name="password" class="form-control" required>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-box-arrow-in-right"></i> Login
+                </button>
+
+            </form>
+
         </div>
-
-        <div class="mb-3">
-            <input type="password" name="password" class="form-control" placeholder="Passwort" required>
-        </div>
-
-        <button type="submit" class="btn btn-primary w-100">Login</button>
-    </form>
+    </div>
 
 </div>
 

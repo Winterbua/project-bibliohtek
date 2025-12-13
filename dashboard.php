@@ -12,267 +12,187 @@ if (empty($_SESSION['logged_in'])) {
     exit;
 }
 
-$error = "";
-$success = "";
+$error = '';
+$success = '';
 
-// === NEUES BUCH HINZUFÜGEN ===
+// -------------------- ADD BOOK --------------------
 if (isset($_POST['add'])) {
-    $titel = trim($_POST['titel']);
-    $autor = trim($_POST['autor']);
-    $isbn  = trim($_POST['isbn']);
-    $verlag = trim($_POST['verlag']);
-    $kategorie = trim($_POST['kategorie']);
-    $beschreibung = trim($_POST['beschreibung']);
-    $anschaffungskosten = trim($_POST['anschaffungskosten']);
+    $stmt = $pdo->prepare("
+        INSERT INTO t_buecher
+        (ISBN, Titel, Author, Verlag, Kategorie, Beschreibung, Anschaffungskosten)
+        VALUES (:isbn, :titel, :author, :verlag, :kategorie, :beschreibung, :kosten)
+    ");
+    $stmt->execute([
+        'isbn' => $_POST['isbn'] ?: null,
+        'titel' => $_POST['titel'],
+        'author' => $_POST['autor'],
+        'verlag' => $_POST['verlag'] ?: null,
+        'kategorie' => $_POST['kategorie'] ?: null,
+        'beschreibung' => $_POST['beschreibung'] ?: null,
+        'kosten' => $_POST['anschaffungskosten'] ?: null
+    ]);
 
-    if ($titel === "" || $autor === "") {
-        $error = "Bitte die Pflichtfelder ausfüllen (Titel, Author)";
-    } else {
-        try {
-            $stmt = $pdo->prepare(
-                "INSERT INTO t_buecher 
-                (Titel, Author, ISBN, Verlag, Kategorie, Beschreibung, Anschaffungskosten)
-                VALUES (:titel, :author, :isbn, :verlag, :kategorie, :beschreibung, :anschaffungskosten)"
-            );
-            $stmt->execute([
-                'titel' => $titel,
-                'author' => $autor,
-                'isbn' => $isbn ?: null,
-                'verlag' => $verlag ?: null,
-                'kategorie' => $kategorie ?: null,
-                'beschreibung' => $beschreibung ?: null,
-                'anschaffungskosten' => $anschaffungskosten ?: null
-            ]);
-            $success = "Buch hinzugefügt.";
-        } catch (PDOException $e) {
-            $error = "Fehler beim Hinzufügen: " . $e->getMessage();
-        }
-    }
+    header("Location: dashboard.php?success=added");
+    exit;
 }
 
-// === BUCH LÖSCHEN ===
-if (isset($_GET['delete'])) {
-    $buchNr = $_GET['delete'];
-    try {
-        $stmt = $pdo->prepare("DELETE FROM t_buecher WHERE buchNr = :buchNr");
-        $stmt->execute(['buchNr' => $buchNr]);
-        $success = "Buch gelöscht.";
-    } catch (PDOException $e) {
-        $error = "Fehler beim Löschen: " . $e->getMessage();
-    }
+// -------------------- DELETE BOOK --------------------
+if (isset($_POST['delete'])) {
+    $stmt = $pdo->prepare("DELETE FROM t_buecher WHERE buchNr = ?");
+    $stmt->execute([$_POST['buchNr']]);
+    header("Location: dashboard.php?success=deleted");
+    exit;
 }
 
-// === BUCH BEARBEITEN ===
-if (isset($_GET['edit'])) {
-    $editId = $_GET['edit'];
-    try {
-        $stmt = $pdo->prepare("SELECT * FROM t_buecher WHERE buchNr = :buchNr");
-        $stmt->execute(['buchNr' => $editId]);
-        $bookToEdit = $stmt->fetch();
-        if (!$bookToEdit) {
-            $error = "Buch nicht gefunden.";
-        }
-    } catch (PDOException $e) {
-        $error = "Fehler beim Laden des Buchs: " . $e->getMessage();
-    }
-}
-
+// -------------------- UPDATE BOOK --------------------
 if (isset($_POST['update'])) {
-    $buchNr = $_POST['buchNr'];
-    $titel = trim($_POST['titel']);
-    $autor = trim($_POST['autor']);
-    $isbn  = trim($_POST['isbn']);
-    $verlag = trim($_POST['verlag']);
-    $kategorie = trim($_POST['kategorie']);
-    $beschreibung = trim($_POST['beschreibung']);
-    $anschaffungskosten = trim($_POST['anschaffungskosten']);
+    $stmt = $pdo->prepare("
+        UPDATE t_buecher SET
+            ISBN = :isbn,
+            Titel = :titel,
+            Author = :author,
+            Verlag = :verlag,
+            Kategorie = :kategorie,
+            Beschreibung = :beschreibung,
+            Anschaffungskosten = :kosten
+        WHERE buchNr = :id
+    ");
+    $stmt->execute([
+        'isbn' => $_POST['isbn'],
+        'titel' => $_POST['titel'],
+        'author' => $_POST['autor'],
+        'verlag' => $_POST['verlag'],
+        'kategorie' => $_POST['kategorie'],
+        'beschreibung' => $_POST['beschreibung'],
+        'kosten' => $_POST['anschaffungskosten'],
+        'id' => $_POST['buchNr']
+    ]);
 
-    if ($titel === "" || $autor === "") {
-        $error = "Bitte die Pflichtfelder ausfüllen (Titel, Author)";
-    } else {
-        try {
-            $stmt = $pdo->prepare(
-                "UPDATE t_buecher SET 
-                 Titel = :titel,
-                 Author = :author,
-                 ISBN = :isbn,
-                 Verlag = :verlag,
-                 Kategorie = :kategorie,
-                 Beschreibung = :beschreibung,
-                 Anschaffungskosten = :anschaffungskosten
-                 WHERE buchNr = :buchNr"
-            );
-            $stmt->execute([
-                'titel' => $titel,
-                'author' => $autor,
-                'isbn' => $isbn ?: null,
-                'verlag' => $verlag ?: null,
-                'kategorie' => $kategorie ?: null,
-                'beschreibung' => $beschreibung ?: null,
-                'anschaffungskosten' => $anschaffungskosten ?: null,
-                'buchNr' => $buchNr
-            ]);
-            $success = "Buch aktualisiert.";
-            unset($bookToEdit); // Formular schließen
-        } catch (PDOException $e) {
-            $error = "Fehler beim Aktualisieren: " . $e->getMessage();
-        }
-    }
+    header("Location: dashboard.php?success=updated");
+    exit;
 }
 
-// === ALLE BÜCHER LADEN ===
-try {
-    $stmt = $pdo->query("SELECT * FROM t_buecher ORDER BY Titel ASC");
+// -------------------- SEARCH --------------------
+$books = [];
+if (!empty($_GET['q'])) {
+    $stmt = $pdo->prepare("
+        SELECT * FROM t_buecher
+        WHERE Titel LIKE :q OR Author LIKE :q OR ISBN LIKE :q
+        ORDER BY Titel
+    ");
+    $stmt->execute(['q' => '%' . $_GET['q'] . '%']);
     $books = $stmt->fetchAll();
-} catch (PDOException $e) {
-    $error = "Fehler beim Laden der Bücher: " . $e->getMessage();
-    $books = [];
+}
+
+// -------------------- EDIT LOAD --------------------
+$editBook = null;
+if (isset($_GET['edit'])) {
+    $stmt = $pdo->prepare("SELECT * FROM t_buecher WHERE buchNr = ?");
+    $stmt->execute([$_GET['edit']]);
+    $editBook = $stmt->fetch();
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="author" content="Manuel Mayr">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard</title>
-    <link href="style/style.css" rel="stylesheet">
+    <title>Verwaltung</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
 </head>
-<body>
+<body class="bg-light">
+
 <?php include 'content/navbar.php'; ?>
 
-<div id="real_body" class="container mt-5">
+<div class="container py-5">
 
-    <p>Logged in as: <strong><?= htmlspecialchars($_SESSION['username']) ?></strong></p>
-
-    <?php if ($error): ?>
-        <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>
-    <?php endif; ?>
-    <?php if ($success): ?>
-        <div class="alert alert-success"><?= htmlspecialchars($success) ?></div>
-    <?php endif; ?>
-
-    <!-- NEUES BUCH HINZUFÜGEN -->
-    <div class="card mb-4">
-        <div class="card-header">Neues Buch hinzufügen</div>
-        <div class="card-body">
-            <form method="post">
-                <div class="mb-3">
-                    <input type="text" name="titel" class="form-control" placeholder="Titel" required>
-                </div>
-                <div class="mb-3">
-                    <input type="text" name="autor" class="form-control" placeholder="Author" required>
-                </div>
-                <div class="mb-3">
-                    <input type="text" name="isbn" class="form-control" placeholder="ISBN">
-                </div>
-                <div class="mb-3">
-                    <input type="text" name="verlag" class="form-control" placeholder="Verlag">
-                </div>
-                <div class="mb-3">
-                    <input type="text" name="kategorie" class="form-control" placeholder="Kategorie">
-                </div>
-                <div class="mb-3">
-                    <textarea name="beschreibung" class="form-control" placeholder="Beschreibung"></textarea>
-                </div>
-                <div class="mb-3">
-                    <input type="number" step="0.01" name="anschaffungskosten" class="form-control" placeholder="Anschaffungskosten">
-                </div>
-                <button type="submit" name="add" class="btn btn-success">Hinzufügen</button>
-            </form>
-        </div>
+<!-- SUCCESS MESSAGES -->
+<?php if ($_GET['success'] ?? ''): ?>
+    <div class="alert alert-success">
+        Aktion erfolgreich ausgeführt.
     </div>
+<?php endif; ?>
 
-    <!-- BUCH BEARBEITEN -->
-    <?php if (isset($bookToEdit) && $bookToEdit): ?>
-    <div class="card mb-4">
-        <div class="card-header">Buch bearbeiten</div>
-        <div class="card-body">
-            <form method="post">
-                <input type="hidden" name="buchNr" value="<?= htmlspecialchars($bookToEdit['buchNr']) ?>">
+<!-- ACTION BUTTONS -->
+<div class="d-flex gap-2 mb-4">
+    <a href="dashboard.php?action=add" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Buch hinzufügen
+    </a>
+</div>
 
-                <div class="mb-3">
-                    <input type="text" name="titel" class="form-control"
-                           value="<?= htmlspecialchars($bookToEdit['Titel']) ?>" placeholder="Titel" required>
-                </div>
-                <div class="mb-3">
-                    <input type="text" name="autor" class="form-control"
-                           value="<?= htmlspecialchars($bookToEdit['Author']) ?>" placeholder="Author" required>
-                </div>
-                <div class="mb-3">
-                    <input type="text" name="isbn" class="form-control"
-                           value="<?= htmlspecialchars($bookToEdit['ISBN']) ?>" placeholder="ISBN">
-                </div>
-                <div class="mb-3">
-                    <input type="text" name="verlag" class="form-control"
-                           value="<?= htmlspecialchars($bookToEdit['Verlag']) ?>" placeholder="Verlag">
-                </div>
-                <div class="mb-3">
-                    <input type="text" name="kategorie" class="form-control"
-                           value="<?= htmlspecialchars($bookToEdit['Kategorie']) ?>" placeholder="Kategorie">
-                </div>
-                <div class="mb-3">
-                    <textarea name="beschreibung" class="form-control" placeholder="Beschreibung"><?= htmlspecialchars($bookToEdit['Beschreibung']) ?></textarea>
-                </div>
-                <div class="mb-3">
-                    <input type="number" step="0.01" name="anschaffungskosten" class="form-control"
-                           value="<?= htmlspecialchars($bookToEdit['Anschaffungskosten']) ?>" placeholder="Anschaffungskosten">
-                </div>
+<!-- SEARCH -->
+<form class="input-group mb-4">
+    <input type="text" name="q" class="form-control" placeholder="Buch suchen..." value="<?= htmlspecialchars($_GET['q'] ?? '') ?>">
+    <button class="btn btn-outline-secondary">Suchen</button>
+</form>
 
-                <button type="submit" name="update" class="btn btn-warning">Aktualisieren</button>
-            </form>
-        </div>
-    </div>
-    <?php endif; ?>
+<!-- SEARCH RESULTS -->
+<?php if ($books): ?>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Titel</th>
+            <th>Autor</th>
+            <th>ISBN</th>
+            <th>Aktionen</th>
+        </tr>
+    </thead>
+    <tbody>
+    <?php foreach ($books as $b): ?>
+        <tr>
+            <td><?= htmlspecialchars($b['Titel']) ?></td>
+            <td><?= htmlspecialchars($b['Author']) ?></td>
+            <td><?= htmlspecialchars($b['ISBN']) ?></td>
+            <td class="d-flex gap-2">
+                <a href="dashboard.php?edit=<?= $b['buchNr'] ?>" class="btn btn-sm btn-warning">
+                    <i class="bi bi-pencil"></i>
+                </a>
+                <form method="post" onsubmit="return confirm('Wirklich löschen?')">
+                    <input type="hidden" name="buchNr" value="<?= $b['buchNr'] ?>">
+                    <button name="delete" class="btn btn-sm btn-danger">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </form>
+            </td>
+        </tr>
+    <?php endforeach; ?>
+    </tbody>
+</table>
+<?php endif; ?>
 
-    <!-- BÜCHER ÜBERSICHT -->
-    <div class="card">
-        <div class="card-header">Alle Bücher</div>
-        <div class="card-body table-responsive">
-            <table class="table table-bordered table-hover">
-                <thead>
-                    <tr>
-                        <th>BuchNr</th>
-                        <th>Titel</th>
-                        <th>Author</th>
-                        <th>ISBN</th>
-                        <th>Verlag</th>
-                        <th>Kategorie</th>
-                        <th>Beschreibung</th>
-                        <th>Anschaffungskosten</th>
-                        <th>Aktionen</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($books as $b): ?>
-                        <tr>
-                            <td><?= htmlspecialchars($b['buchNr']) ?></td>
-                            <td><?= htmlspecialchars($b['Titel']) ?></td>
-                            <td><?= htmlspecialchars($b['Author']) ?></td>
-                            <td><?= htmlspecialchars($b['ISBN']) ?></td>
-                            <td><?= htmlspecialchars($b['Verlag']) ?></td>
-                            <td><?= htmlspecialchars($b['Kategorie']) ?></td>
-                            <td><?= htmlspecialchars($b['Beschreibung']) ?></td>
-                            <td><?= htmlspecialchars($b['Anschaffungskosten']) ?></td>
-                            <td>
-                                <a href="dashboard.php?edit=<?= urlencode($b['buchNr']) ?>"
-                                   class="btn btn-sm btn-primary">Bearbeiten</a>
-                                <a href="dashboard.php?delete=<?= urlencode($b['buchNr']) ?>"
-                                   class="btn btn-sm btn-danger"
-                                   onclick="return confirm('Wirklich löschen?');">Löschen</a>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
-    </div>
+<!-- ADD BOOK -->
+<?php if (($_GET['action'] ?? '') === 'add'): ?>
+<h4>Neues Buch</h4>
+<form method="post" class="row g-3">
+    <input class="form-control" name="titel" placeholder="Titel" required>
+    <input class="form-control" name="autor" placeholder="Autor" required>
+    <input class="form-control" name="isbn" placeholder="ISBN">
+    <input class="form-control" name="verlag" placeholder="Verlag">
+    <input class="form-control" name="kategorie" placeholder="Kategorie">
+    <textarea class="form-control" name="beschreibung" placeholder="Beschreibung"></textarea>
+    <input class="form-control" type="number" step="0.01" name="anschaffungskosten" placeholder="Kosten">
+    <button name="add" class="btn btn-success">Speichern</button>
+</form>
+<?php endif; ?>
+
+<!-- EDIT BOOK -->
+<?php if ($editBook): ?>
+<h4>Buch bearbeiten</h4>
+<form method="post" class="row g-3">
+    <input type="hidden" name="buchNr" value="<?= $editBook['buchNr'] ?>">
+    <input class="form-control" name="titel" value="<?= $editBook['Titel'] ?>" required>
+    <input class="form-control" name="autor" value="<?= $editBook['Author'] ?>" required>
+    <input class="form-control" name="isbn" value="<?= $editBook['ISBN'] ?>">
+    <input class="form-control" name="verlag" value="<?= $editBook['Verlag'] ?>">
+    <input class="form-control" name="kategorie" value="<?= $editBook['Kategorie'] ?>">
+    <textarea class="form-control" name="beschreibung"><?= $editBook['Beschreibung'] ?></textarea>
+    <input class="form-control" type="number" step="0.01" name="anschaffungskosten" value="<?= $editBook['Anschaffungskosten'] ?>">
+    <button name="update" class="btn btn-primary">Aktualisieren</button>
+</form>
+<?php endif; ?>
 
 </div>
 
-<?php include 'content/footer.php'; ?>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
