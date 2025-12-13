@@ -28,7 +28,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 </li>
                 <?php if (!empty($_SESSION['logged_in']) && $_SESSION['logged_in'] === true): ?>
                     <li class="nav-item">
-                        <a class="nav-link <?= ($current_page == 'logout.php') ? 'active' : '' ?>" 
+                        <a class="nav-link" 
                            href="content/logout.php">Logout</a>
                     </li>
                 <?php else: ?>

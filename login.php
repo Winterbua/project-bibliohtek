@@ -1,34 +1,34 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+    ini_set('display_errors', 1);
+    ini_set('display_startup_errors', 1);
+    error_reporting(E_ALL);
 
-session_start();
-require 'content/datenbankverbindung.php';
+    session_start();
+    require 'content/datenbankverbindung.php';
 
-$error = "";
+    $error = "";
 
-if ($_SERVER["REQUEST_METHOD"] === "POST") {
-    $username = trim($_POST['username']);
-    $password = $_POST['password'];
+    if ($_SERVER["REQUEST_METHOD"] === "POST") {
+        $username = trim($_POST['username']);
+        $password = $_POST['password'];
 
-    $stmt = $pdo->prepare(
-        "SELECT personalNr, password FROM t_bibliothekar WHERE username = :username"
-    );
-    $stmt->execute(['username' => $username]);
-    $user = $stmt->fetch();
+        $stmt = $pdo->prepare(
+            "SELECT personalNr, password FROM t_bibliothekar WHERE username = :username"
+        );
+        $stmt->execute(['username' => $username]);
+        $user = $stmt->fetch();
 
-    if ($user && password_verify($password, $user['password'])) {
-        session_regenerate_id(true);
-        $_SESSION['username'] = $username;
-        $_SESSION['logged_in'] = true;
+        if ($user && password_verify($password, $user['password'])) {
+            session_regenerate_id(true);
+            $_SESSION['username'] = $username;
+            $_SESSION['logged_in'] = true;
 
-        header("Location: dashboard.php");
-        exit;
-    } else {
-        $error = "Benutzername oder Passwort falsch";
+            header("Location: dashboard.php");
+            exit;
+        } else {
+            $error = "Benutzername oder Passwort falsch";
+        }
     }
-}
 ?>
 
 <!DOCTYPE html>
