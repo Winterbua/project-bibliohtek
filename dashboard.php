@@ -74,11 +74,16 @@ if (isset($_POST['update'])) {
 
 // -------------------- SEARCH --------------------
 $books = [];
-// Session damit der Searchterm nach dem Reload nicht gelöscht wird 
 $search_term = $_SESSION['search_term'] ?? '';
-if (!empty($_GET['q'])) {
-    $search_term = $_GET['q'];
+
+// Wenn ein neuer Begriff per GET kommt, Session aktualisieren
+if (isset($_GET['q'])) {
+    $search_term = trim($_GET['q']);
     $_SESSION['search_term'] = $search_term;
+}
+
+// Nur suchen, wenn $search_term nicht leer ist
+if ($search_term !== '') {
     $stmt = $pdo->prepare("
         SELECT * FROM t_buecher
         WHERE Titel LIKE :q OR Author LIKE :q OR ISBN LIKE :q
@@ -87,6 +92,7 @@ if (!empty($_GET['q'])) {
     $stmt->execute(['q' => '%' . $search_term . '%']);
     $books = $stmt->fetchAll();
 }
+
 
 // -------------------- EDIT LOAD --------------------
 $editBook = null;
