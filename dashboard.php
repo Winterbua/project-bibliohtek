@@ -74,13 +74,17 @@ if (isset($_POST['update'])) {
 
 // -------------------- SEARCH --------------------
 $books = [];
+// Session damit der Searchterm nach dem Reload nicht gelöscht wird 
+$search_term = $_SESSION['search_term'] ?? '';
 if (!empty($_GET['q'])) {
+    $search_term = $_GET['q'];
+    $_SESSION['search_term'] = $search_term;
     $stmt = $pdo->prepare("
         SELECT * FROM t_buecher
         WHERE Titel LIKE :q OR Author LIKE :q OR ISBN LIKE :q
         ORDER BY Titel
     ");
-    $stmt->execute(['q' => '%' . $_GET['q'] . '%']);
+    $stmt->execute(['q' => '%' . $search_term . '%']);
     $books = $stmt->fetchAll();
 }
 
@@ -91,6 +95,21 @@ if (isset($_GET['edit'])) {
     $stmt->execute([$_GET['edit']]);
     $editBook = $stmt->fetch();
 }
+
+// -------------------- TOGGLE AUSLEIH --------------------
+if (isset($_GET['toggle'])) {
+    $stmt = $pdo->prepare("
+        UPDATE t_buecher
+        SET ausleih = NOT ausleih
+        WHERE buchNr = ?
+    ");
+    $stmt->execute([$_GET['toggle']]);
+
+    header("Location: dashboard.php");
+    exit;
+}
+
+
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -122,7 +141,7 @@ if (isset($_GET['edit'])) {
 
 <!-- SEARCH -->
 <form class="input-group mb-4">
-    <input type="text" name="q" class="form-control" placeholder="Buch suchen..." value="<?= htmlspecialchars($_GET['q'] ?? '') ?>">
+    <input type="text" name="q" class="form-control" placeholder="Buch suchen..." value="<?= htmlspecialchars($search_term); ?>">
     <button class="btn btn-outline-secondary">Suchen</button>
 </form>
 
@@ -144,6 +163,10 @@ if (isset($_GET['edit'])) {
             <td><?= htmlspecialchars($b['Author']) ?></td>
             <td><?= htmlspecialchars($b['ISBN']) ?></td>
             <td class="d-flex gap-2">
+                <a href="dashboard.php?toggle=<?= $b['buchNr'] ?>"
+                class="btn btn-sm <?= $b['ausleih'] ? 'btn-success' : 'btn-secondary' ?>">
+                    <i class="bi <?= $b['ausleih'] ? 'bi-check-lg' : 'bi-x-lg' ?>"></i>
+                </a>
                 <a href="dashboard.php?edit=<?= $b['buchNr'] ?>" class="btn btn-sm btn-warning">
                     <i class="bi bi-pencil"></i>
                 </a>
