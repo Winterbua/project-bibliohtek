@@ -1,6 +1,10 @@
 <?php
     session_start();
+    header('Location: suchen.php');
 ?>
+<!-- This Document is only for the Webserver to have a index.php file
+     And for me to have a Template file where all the links and inlcudations are set
+-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
