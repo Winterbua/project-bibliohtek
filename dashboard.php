@@ -93,7 +93,6 @@ if ($search_term !== '') {
     $books = $stmt->fetchAll();
 }
 
-
 // -------------------- EDIT LOAD --------------------
 $editBook = null;
 if (isset($_GET['edit'])) {
@@ -151,44 +150,6 @@ if (isset($_GET['toggle'])) {
     <button class="btn btn-outline-secondary">Suchen</button>
 </form>
 
-<!-- SEARCH RESULTS -->
-<?php if ($books): ?>
-<table class="table table-striped">
-    <thead>
-        <tr>
-            <th>Titel</th>
-            <th>Autor</th>
-            <th>ISBN</th>
-            <th>Aktionen</th>
-        </tr>
-    </thead>
-    <tbody>
-    <?php foreach ($books as $b): ?>
-        <tr>
-            <td><?= htmlspecialchars($b['Titel']) ?></td>
-            <td><?= htmlspecialchars($b['Author']) ?></td>
-            <td><?= htmlspecialchars($b['ISBN']) ?></td>
-            <td class="d-flex gap-2">
-                <a href="dashboard.php?toggle=<?= $b['buchNr'] ?>"
-                class="btn btn-sm <?= $b['ausleih'] ? 'btn-success' : 'btn-secondary' ?>">
-                    <i class="bi <?= $b['ausleih'] ? 'bi-check-lg' : 'bi-x-lg' ?>"></i>
-                </a>
-                <a href="dashboard.php?edit=<?= $b['buchNr'] ?>" class="btn btn-sm btn-warning">
-                    <i class="bi bi-pencil"></i>
-                </a>
-                <form method="post" onsubmit="return confirm('Wirklich löschen?')">
-                    <input type="hidden" name="buchNr" value="<?= $b['buchNr'] ?>">
-                    <button name="delete" class="btn btn-sm btn-danger">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </form>
-            </td>
-        </tr>
-    <?php endforeach; ?>
-    </tbody>
-</table>
-<?php endif; ?>
-
 <!-- ADD BOOK -->
 <?php if (($_GET['action'] ?? '') === 'add'): ?>
 <h4>Neues Buch</h4>
@@ -200,7 +161,7 @@ if (isset($_GET['toggle'])) {
     <input class="form-control" name="kategorie" placeholder="Kategorie">
     <textarea class="form-control" name="beschreibung" placeholder="Beschreibung"></textarea>
     <input class="form-control" type="number" step="0.01" name="anschaffungskosten" placeholder="Kosten">
-    <button name="add" class="btn btn-success">Speichern</button>
+    <button name="add" class="btn btn-primary">Speichern</button>
 </form>
 <?php endif; ?>
 
@@ -218,6 +179,47 @@ if (isset($_GET['toggle'])) {
     <input class="form-control" type="number" step="0.01" name="anschaffungskosten" value="<?= $editBook['Anschaffungskosten'] ?>">
     <button name="update" class="btn btn-primary">Aktualisieren</button>
 </form>
+<?php endif; ?>
+
+<!-- SEARCH RESULTS -->
+<?php if ($books && !isset($_GET['action']) && !isset($_GET['edit'])): ?>
+    <?php if ($books): ?>
+    <h4>Bücher verwalten</h4>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Titel</th>
+                <th>Autor</th>
+                <th>ISBN</th>
+                <th>Aktionen</th>
+            </tr>
+        </thead>
+        <tbody>
+        <?php foreach ($books as $b): ?>
+            <tr>
+                <td><?= htmlspecialchars($b['Titel']) ?></td>
+                <td><?= htmlspecialchars($b['Author']) ?></td>
+                <td><?= htmlspecialchars($b['ISBN']) ?></td>
+                <td class="d-flex gap-2">
+                    <a href="dashboard.php?toggle=<?= $b['buchNr'] ?>"
+                    class="btn btn-sm <?= $b['ausleih'] ? 'btn-success' : 'btn-secondary' ?>">
+                        <i class="bi <?= $b['ausleih'] ? 'bi-check-lg' : 'bi-x-lg' ?>"></i>
+                    </a>
+                    <a href="dashboard.php?edit=<?= $b['buchNr'] ?>" class="btn btn-sm btn-warning">
+                        <i class="bi bi-pencil"></i>
+                    </a>
+                    <form method="post" onsubmit="return confirm('Wirklich löschen?')">
+                        <input type="hidden" name="buchNr" value="<?= $b['buchNr'] ?>">
+                        <button name="delete" class="btn btn-sm btn-danger">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </form>
+                </td>
+            </tr>
+        <?php endforeach; ?>
+        </tbody>
+    </table>
+    <?php endif; ?>
 <?php endif; ?>
 
 </div>
