@@ -15,8 +15,8 @@ $success = '';
 if (isset($_POST['add'])) {
     $stmt = $pdo->prepare("
         INSERT INTO t_buecher
-        (ISBN, Titel, Author, Verlag, Kategorie, Beschreibung, Anschaffungskosten)
-        VALUES (:isbn, :titel, :author, :verlag, :kategorie, :beschreibung, :kosten)
+        (ISBN, Titel, Author, Verlag, Kategorie, Beschreibung, Anschaffungskosten, ausleih)
+        VALUES (:isbn, :titel, :author, :verlag, :kategorie, :beschreibung, :kosten, :ausleih)
     ");
     $stmt->execute([
         'isbn' => $_POST['isbn'] ?: null,
@@ -25,7 +25,8 @@ if (isset($_POST['add'])) {
         'verlag' => $_POST['verlag'] ?: null,
         'kategorie' => $_POST['kategorie'] ?: null,
         'beschreibung' => $_POST['beschreibung'] ?: null,
-        'kosten' => $_POST['anschaffungskosten'] ?: null
+        'kosten' => $_POST['anschaffungskosten'] ?: null,
+        'ausleih' => 1
     ]);
 
     header("Location: dashboard.php?success=added");
@@ -97,17 +98,74 @@ if (isset($_GET['edit'])) {
     $editBook = $stmt->fetch();
 }
 
-// -------------------- TOGGLE AUSLEIH --------------------
-if (isset($_GET['toggle'])) {
-    $stmt = $pdo->prepare("
-        UPDATE t_buecher
-        SET ausleih = NOT ausleih
-        WHERE buchNr = ?
-    ");
-    $stmt->execute([$_GET['toggle']]);
+// ----------- Logik für das Ausleihen -----------
+if (isset($_POST['ausleihen'])) {
+    try {
+        $pdo->beginTransaction();
 
-    header("Location: dashboard.php");
-    exit;
+        // Buch als ausgeliehen markieren
+        $stmt = $pdo->prepare("
+            UPDATE t_buecher 
+            SET ausleih = 0 
+            WHERE buchNr = ?
+        ");
+        $stmt->execute([$_POST['buchNr']]);
+
+        // Ausleihe protokollieren
+        $stmt = $pdo->prepare("
+            INSERT INTO t_ausleih
+            (vorname, nachname, personalNr, buchNr, ausleihdatum, rueckgabedatum)
+            VALUES (?, ?, ?, ?, NOW(), DATE_ADD(NOW(), INTERVAL 15 DAY))
+        ");
+
+        $stmt->execute([
+            $_POST['vorname'],
+            $_POST['nachname'],
+            $_SESSION['user_id'],   // personalNr
+            $_POST['buchNr']
+        ]);
+
+        $pdo->commit();
+        header("Location: dashboard.php");
+        exit;
+
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        die("Fehler beim Ausleihen");
+    }
+}
+
+
+
+// ----------- Logik für das Rückgeben -----------
+if (isset($_POST['zurueckgeben'])) {
+    try {
+        $pdo->beginTransaction();
+
+        // Buch wieder verfügbar
+        $stmt = $pdo->prepare("
+            UPDATE t_buecher 
+            SET ausleih = 1 
+            WHERE buchNr = ?
+        ");
+        $stmt->execute([$_POST['buchNr']]);
+
+        // Rueckgabe setzen
+        $stmt = $pdo->prepare("
+            UPDATE t_ausleih
+            SET rueckgabedatum = NOW()
+            WHERE buchNr = ? AND rueckgabedatum IS NULL
+        ");
+        $stmt->execute([$_POST['buchNr']]);
+
+        $pdo->commit();
+        header("Location: dashboard.php");
+        exit;
+
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        die("Fehler bei der Rückgabe");
+    }
 }
 
 
@@ -197,21 +255,33 @@ if (isset($_GET['toggle'])) {
                 <td><?= htmlspecialchars($b['Author']) ?></td>
                 <td><?= htmlspecialchars($b['ISBN']) ?></td>
                 <td class="d-flex gap-2">
-                    <a href="dashboard.php?toggle=<?= $b['buchNr'] ?>"
-                    class="btn btn-sm <?= $b['ausleih'] ? 'btn-success' : 'btn-secondary' ?>">
-                        <i class="bi <?= $b['ausleih'] ? 'bi-check-lg' : 'bi-x-lg' ?>"></i>
-                    </a>
                     <a href="dashboard.php?edit=<?= $b['buchNr'] ?>" class="btn btn-sm btn-warning">
                         <i class="bi bi-pencil"></i>
                     </a>
+                    <form method="post" class="d-flex gap-1">
+                        <input type="hidden" name="buchNr" value="<?= $b['buchNr'] ?>">
+
+                        <input type="text" name="vorname"
+                            class="form-control form-control-sm"
+                            placeholder="Vorname" required>
+
+                        <input type="text" name="nachname"
+                            class="form-control form-control-sm"
+                            placeholder="Nachname" required>
+
+                        <button name="ausleihen" class="btn btn-sm btn-success">
+                            <i class="bi bi-box-arrow-right"></i>
+                        </button>
+                    </form>
                     <form method="post" onsubmit="return confirm('Wirklich löschen?')">
                         <input type="hidden" name="buchNr" value="<?= $b['buchNr'] ?>">
                         <button name="delete" class="btn btn-sm btn-danger">
                             <i class="bi bi-trash"></i>
-                        </button>
+                        </button> 
                     </form>
                 </td>
             </tr>
+
         <?php endforeach; ?>
         </tbody>
     </table>
