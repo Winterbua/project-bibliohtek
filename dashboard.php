@@ -135,8 +135,6 @@ if (isset($_POST['ausleihen'])) {
     }
 }
 
-
-
 // ----------- Logik für das Rückgeben -----------
 if (isset($_POST['zurueckgeben'])) {
     try {
