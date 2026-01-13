@@ -18,6 +18,7 @@
             session_regenerate_id(true);
             $_SESSION['username'] = $username;
             $_SESSION['logged_in'] = true;
+            $_SESSION['personalNr'] = $user['personalNr'];
 
             header("Location: dashboard.php");
             exit;
@@ -60,7 +61,7 @@
             <form method="post" action="login.php">
 
                 <div class="mb-3">
-                    <label class="form-label">Benutzername</label>
+                    <label class="form-label">Benutzername:</label>
                     <div class="input-group">
                         <span class="input-group-text"><i class="bi bi-person"></i></span>
                         <input type="text" name="username" class="form-control" required>
@@ -68,7 +69,7 @@
                 </div>
 
                 <div class="mb-4">
-                    <label class="form-label">Passwort</label>
+                    <label class="form-label">Passwort:</label>
                     <div class="input-group">
                         <span class="input-group-text"><i class="bi bi-lock"></i></span>
                         <input type="password" name="password" class="form-control" required>

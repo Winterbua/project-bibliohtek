@@ -121,7 +121,7 @@ if (isset($_POST['ausleihen'])) {
         $stmt->execute([
             $_POST['vorname'],
             $_POST['nachname'],
-            $_SESSION['user_id'],   // personalNr
+            $_SESSION['personalNr'],
             $_POST['buchNr']
         ]);
 
@@ -243,7 +243,7 @@ if (isset($_POST['zurueckgeben'])) {
                 <th>Titel</th>
                 <th>Autor</th>
                 <th>ISBN</th>
-                <th>Aktionen</th>
+                <th colspan="2">Aktionen</th>
             </tr>
         </thead>
         <tbody>
@@ -252,25 +252,41 @@ if (isset($_POST['zurueckgeben'])) {
                 <td><?= htmlspecialchars($b['Titel']) ?></td>
                 <td><?= htmlspecialchars($b['Author']) ?></td>
                 <td><?= htmlspecialchars($b['ISBN']) ?></td>
+                <td>
+                    <?php if ($b['ausleih'] == 1): ?>
+                        <span class="badge bg-success">Verfügbar</span>
+                    <?php else: ?>
+                        <span class="badge bg-danger">Ausgeliehen</span>
+                    <?php endif; ?>
+                </td>
                 <td class="d-flex gap-2">
                     <a href="dashboard.php?edit=<?= $b['buchNr'] ?>" class="btn btn-sm btn-warning">
                         <i class="bi bi-pencil"></i>
                     </a>
+                    <?php if ($b['ausleih'] == 1): ?>
                     <form method="post" class="d-flex gap-1">
                         <input type="hidden" name="buchNr" value="<?= $b['buchNr'] ?>">
 
-                        <input type="text" name="vorname"
-                            class="form-control form-control-sm"
-                            placeholder="Vorname" required>
-
-                        <input type="text" name="nachname"
-                            class="form-control form-control-sm"
-                            placeholder="Nachname" required>
+                        <input type="text" name="vorname" class="form-control form-control-sm" placeholder="Vorname" required>
+                        <input type="text" name="nachname" class="form-control form-control-sm" placeholder="Nachname" required>
 
                         <button name="ausleihen" class="btn btn-sm btn-success">
                             <i class="bi bi-box-arrow-right"></i>
                         </button>
                     </form>
+                    <?php else: ?>
+                        <button class="btn btn-sm btn-secondary" disabled>
+                            <i class="bi bi-lock"></i>
+                        </button>
+                    <?php endif; ?>
+                    <?php if ($b['ausleih'] == 0): ?>
+                    <form method="post">
+                        <input type="hidden" name="buchNr" value="<?= $b['buchNr'] ?>">
+                        <button name="zurueckgeben" class="btn btn-sm btn-info">
+                            <i class="bi bi-box-arrow-in-left"></i>
+                        </button>
+                    </form>
+                    <?php endif; ?>
                     <form method="post" onsubmit="return confirm('Wirklich löschen?')">
                         <input type="hidden" name="buchNr" value="<?= $b['buchNr'] ?>">
                         <button name="delete" class="btn btn-sm btn-danger">
