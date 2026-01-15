@@ -1,3 +1,10 @@
+<!-- 
+    Dies ist ein KI generierter Code für das Hashen von dem Passwort,
+    sodass man sich auch gesichert anmelden kann.
+    Dieses Script ist nicht für die Öffentliche Benutzung gedacht
+    und wird somit auch nicht auf der Website über einen Link veröffentlicht
+-->
+
 <?php
 session_start();
 
@@ -83,8 +90,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         </button>
     </form>
 </div>
-
-<?php include 'content/footer.php'; ?>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>

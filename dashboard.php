@@ -1,4 +1,9 @@
 <?php
+/*
+    Dieser erste Teil dient dazu,
+    die Session zu starten und die Login daten zu empfangen.
+
+*/
 session_start();
 require 'content/datenbankverbindung.php';
 
@@ -8,10 +13,17 @@ if (empty($_SESSION['logged_in'])) {
     exit;
 }
 
-$error = '';
+// Variable um die Paramter intern auf der Website weiterzuleiten
 $success = '';
 
+
 // -------------------- ADD BOOK --------------------
+/*
+    Erklährung:
+    Die PDO ist ein Objekt, das heißt es kann kein Code so eingefügt werden.
+    Aus diesem Grund werden die Values mit einem : angeschrieben.
+    Somit werden diese als Parameter und nicht als Code übergeben.
+*/
 if (isset($_POST['add'])) {
     $stmt = $pdo->prepare("
         INSERT INTO t_buecher
@@ -19,19 +31,20 @@ if (isset($_POST['add'])) {
         VALUES (:isbn, :titel, :author, :verlag, :kategorie, :beschreibung, :kosten, :ausleih)
     ");
     $stmt->execute([
-        'isbn' => $_POST['isbn'] ?: null,
+        'isbn' => $_POST['isbn'],
         'titel' => $_POST['titel'],
         'author' => $_POST['autor'],
-        'verlag' => $_POST['verlag'] ?: null,
-        'kategorie' => $_POST['kategorie'] ?: null,
-        'beschreibung' => $_POST['beschreibung'] ?: null,
-        'kosten' => $_POST['anschaffungskosten'] ?: null,
+        'verlag' => $_POST['verlag'],
+        'kategorie' => $_POST['kategorie'],
+        'beschreibung' => $_POST['beschreibung'],
+        'kosten' => $_POST['anschaffungskosten'],
         'ausleih' => 1
     ]);
 
     header("Location: dashboard.php?success=added");
     exit;
 }
+
 
 // -------------------- DELETE BOOK --------------------
 if (isset($_POST['delete'])) {
@@ -40,6 +53,7 @@ if (isset($_POST['delete'])) {
     header("Location: dashboard.php?success=deleted");
     exit;
 }
+
 
 // -------------------- UPDATE BOOK --------------------
 if (isset($_POST['update'])) {
@@ -69,6 +83,7 @@ if (isset($_POST['update'])) {
     exit;
 }
 
+
 // -------------------- SEARCH --------------------
 $books = [];
 $search_term = $_SESSION['search_term'] ?? '';
@@ -90,6 +105,7 @@ if ($search_term !== '') {
     $books = $stmt->fetchAll();
 }
 
+
 // -------------------- EDIT LOAD --------------------
 $editBook = null;
 if (isset($_GET['edit'])) {
@@ -97,6 +113,7 @@ if (isset($_GET['edit'])) {
     $stmt->execute([$_GET['edit']]);
     $editBook = $stmt->fetch();
 }
+
 
 // ----------- Logik für das Ausleihen -----------
 if (isset($_POST['ausleihen'])) {
@@ -134,6 +151,7 @@ if (isset($_POST['ausleihen'])) {
         die("Fehler beim Ausleihen");
     }
 }
+
 
 // ----------- Logik für das Rückgeben -----------
 if (isset($_POST['zurueckgeben'])) {

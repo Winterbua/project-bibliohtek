@@ -1,3 +1,8 @@
+<!--
+    Dieses Script ist da, um die Session in der die Anmeldedaten gespeichert sind
+    zu zerstören und somit die Verwaltungs / Dashboard Seite zu blockieren
+-->
+
 <?php
 // Session starten
 session_start();
@@ -7,15 +12,6 @@ $_SESSION = [];
 
 // Session komplett zerstören
 session_destroy();
-
-// Optional: Cookies für Session löschen (falls gesetzt)
-if (ini_get("session.use_cookies")) {
-    $params = session_get_cookie_params();
-    setcookie(session_name(), '', time() - 42000,
-        $params["path"], $params["domain"],
-        $params["secure"], $params["httponly"]
-    );
-}
 
 // Zur Login-Seite weiterleiten
 header("Location: ../login.php");
