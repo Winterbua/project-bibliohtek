@@ -97,10 +97,21 @@ if (isset($_GET['q'])) {
 // Nur suchen, wenn $search_term nicht leer ist
 if ($search_term !== '') {
     $stmt = $pdo->prepare("
-        SELECT * FROM t_buecher
-        WHERE Titel LIKE :q OR Author LIKE :q OR ISBN LIKE :q
-        ORDER BY Titel
+        SELECT b.*, a.vorname, a.nachname, a.rueckgabedatum
+        FROM t_buecher b
+        LEFT JOIN t_ausleih a 
+            ON a.ausleihNr = (
+                SELECT a2.ausleihNr
+                FROM t_ausleih a2
+                WHERE a2.buchNr = b.buchNr
+                AND a2.rueckgabedatum > NOW()
+                ORDER BY a2.rueckgabedatum DESC
+                LIMIT 1
+            )
+        WHERE b.Titel LIKE :q OR b.Author LIKE :q OR b.ISBN LIKE :q
+        ORDER BY b.Titel
     ");
+
     $stmt->execute(['q' => '%' . $search_term . '%']);
     $books = $stmt->fetchAll();
 }
@@ -239,14 +250,15 @@ if (isset($_POST['zurueckgeben'])) {
 <?php if ($editBook): ?>
 <h4>Buch bearbeiten</h4>
 <form method="post" class="row g-3">
-    <input type="hidden" name="buchNr" value="<?= $editBook['buchNr'] ?>">
+    <!-- Der Value ist ein PHP Code der den Text, der in der Datenbank steht direkt in das Formular ausgibt zum Bearbeiten -->
+    <input type="hidden" name="buchNr" value="<?= $editBook['buchNr'] ?>" required>
     <input class="form-control" name="titel" value="<?= $editBook['Titel'] ?>" required>
     <input class="form-control" name="autor" value="<?= $editBook['Author'] ?>" required>
-    <input class="form-control" name="isbn" value="<?= $editBook['ISBN'] ?>">
-    <input class="form-control" name="verlag" value="<?= $editBook['Verlag'] ?>">
-    <input class="form-control" name="kategorie" value="<?= $editBook['Kategorie'] ?>">
-    <textarea class="form-control" name="beschreibung"><?= $editBook['Beschreibung'] ?></textarea>
-    <input class="form-control" type="number" step="0.01" name="anschaffungskosten" value="<?= $editBook['Anschaffungskosten'] ?>">
+    <input class="form-control" name="isbn" value="<?= $editBook['ISBN'] ?>" required>
+    <input class="form-control" name="verlag" value="<?= $editBook['Verlag'] ?>" required>
+    <input class="form-control" name="kategorie" value="<?= $editBook['Kategorie'] ?>" required>
+    <textarea class="form-control" name="beschreibung"><?= $editBook['Beschreibung'] ?></textarea required>
+    <input class="form-control" type="number" step="0.01" name="anschaffungskosten" value="<?= $editBook['Anschaffungskosten'] ?>" required>
     <button name="update" class="btn btn-primary">Aktualisieren</button>
 </form>
 <?php endif; ?>
@@ -267,10 +279,12 @@ if (isset($_POST['zurueckgeben'])) {
         <tbody>
         <?php foreach ($books as $b): ?>
             <tr>
+                <!-- Die Funktion "htmlspecialchars" wird verwendet, um die Daten auslesesicher zu machen -->
                 <td><?= htmlspecialchars($b['Titel']) ?></td>
                 <td><?= htmlspecialchars($b['Author']) ?></td>
                 <td><?= htmlspecialchars($b['ISBN']) ?></td>
                 <td>
+                    <!-- Eine kurze PHP Funktion, die prüft ob das Buch ausgeliehen ist oder nicht -->
                     <?php if ($b['ausleih'] == 1): ?>
                         <span class="badge bg-success">Verfügbar</span>
                     <?php else: ?>
@@ -311,6 +325,14 @@ if (isset($_POST['zurueckgeben'])) {
                             <i class="bi bi-trash"></i>
                         </button> 
                     </form>
+
+                    <?php if ($b['ausleih'] == 0 && $b['vorname']): ?>
+                        <span class="ms-2">
+                            <?= htmlspecialchars($b['vorname'] . ' ' . $b['nachname']) ?>
+                            (<?= date('d.m.Y', strtotime($b['rueckgabedatum'])) ?>)
+                        </span>
+                    <?php endif; ?>
+
                 </td>
             </tr>
 
