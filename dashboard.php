@@ -89,8 +89,8 @@ $books = [];
 $search_term = $_SESSION['search_term'] ?? '';
 
 // Wenn ein neuer Begriff per GET kommt, Session aktualisieren
-if (isset($_GET['q'])) {
-    $search_term = trim($_GET['q']);
+if (isset($_GET['searchterm'])) {
+    $search_term = trim($_GET['searchterm']);
     $_SESSION['search_term'] = $search_term;
 }
 
@@ -108,11 +108,11 @@ if ($search_term !== '') {
                 ORDER BY a2.rueckgabedatum DESC
                 LIMIT 1
             )
-        WHERE b.Titel LIKE :q OR b.Author LIKE :q OR b.ISBN LIKE :q
+        WHERE b.Titel LIKE :searchterm OR b.Author LIKE :searchterm OR b.ISBN LIKE :searchterm
         ORDER BY b.Titel
     ");
 
-    $stmt->execute(['q' => '%' . $search_term . '%']);
+    $stmt->execute(['searchterm' => '%' . $search_term . '%']);
     $books = $stmt->fetchAll();
 }
 
@@ -227,7 +227,7 @@ if (isset($_POST['zurueckgeben'])) {
 
 <!-- SEARCH -->
 <form class="input-group mb-4">
-    <input type="text" name="q" class="form-control" placeholder="Buch suchen..." value="<?= htmlspecialchars($search_term); ?>">
+    <input type="text" name="searchterm" class="form-control" placeholder="Buch suchen..." value="<?= htmlspecialchars($search_term); ?>">
     <button class="btn btn-outline-secondary">Suchen</button>
 </form>
 
