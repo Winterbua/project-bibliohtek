@@ -140,12 +140,14 @@ if (isset($_POST['ausleihen'])) {
         $stmt->execute([$_POST['buchNr']]);
 
         // Ausleihe protokollieren
+        // ? steht für einen Platzhalter
         $stmt = $pdo->prepare("
             INSERT INTO t_ausleih
             (vorname, nachname, personalNr, buchNr, ausleihdatum, rueckgabedatum)
             VALUES (?, ?, ?, ?, NOW(), DATE_ADD(NOW(), INTERVAL 15 DAY))
         ");
 
+        // Platzhalterdaten werden eingefügt
         $stmt->execute([
             $_POST['vorname'],
             $_POST['nachname'],
